@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Nebula | Bulk Order</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --primary: #c084fc; /* Blush Purple */
+            --secondary: #9333ea;
+            --bg-dark: #0c0a0f; 
+            --card-bg: rgba(24, 20, 28, 0.9);
+            --border: rgba(192, 132, 252, 0.15);
+            --text-muted: #a78bfa;
+            --success: #34d399;
+            --error: #fb7185;
+        }
+
+        ::selection {
+            background: rgba(147, 51, 234, 0.9);
+            color: #fff;
+        }
+
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Inter', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-dark);
+            color: #f5f3ff;
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        .glow {
+            position: fixed;
+            width: 40vw;
+            height: 40vw;
+            background: radial-gradient(circle, rgba(147, 51, 234, 0.1) 0%, transparent 70%);
+            z-index: 0;
+            pointer-events: none;
+        }
+
+        #nebula-canvas {
+            position: fixed;
+            inset: 0;
+            z-index: 1;
+            opacity: 0.5;
+        }
+
+        .container {
+            position: relative;
+            z-index: 10;
+            width: 100%;
+            max-width: 360px; /* Slimmer card */
+            padding: 20px;
+        }
+
+        .order-card {
+            background: var(--card-bg);
+            backdrop-filter: blur(24px);
+            -webkit-backdrop-filter: blur(24px);
+            border: 1px solid var(--border);
+            border-radius: 24px;
+            padding: 28px;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.6);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            font-size: 1.2rem;
+            font-weight: 800;
+            letter-spacing: 0.05em;
+            background: linear-gradient(to bottom right, #fff, var(--primary));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            font-size: 0.65rem;
+            font-weight: 700;
+            color: var(--text-muted);
+            margin-bottom: 6px;
+            margin-left: 2px;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        select, input {
+            width: 100%;
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 10px 14px;
+            color: #fff;
+            font-size: 0.9rem;
+            transition: all 0.2s ease;
+            outline: none;
+        }
+
+        select option {
+            background-color: #1a161f;
+            color: #fff;
+        }
+
+        select:focus, input:focus {
+            border-color: var(--primary);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        /* Logic classes for showing/hiding */
+        .hidden {
+            display: none;
+            opacity: 0;
+            transform: translateY(10px);
+        }
+
+        .visible {
+            display: block;
+            animation: fadeIn 0.4s forwards;
+        }
+
+        @keyframes fadeIn {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .price-wrapper {
+            background: rgba(192, 132, 252, 0.05);
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+            margin: 16px 0;
+            border: 1px solid rgba(192, 132, 252, 0.1);
+        }
+
+        .total-amount {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: #fff;
+        }
+
+        .actions {
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .btn {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            width: 100%;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            text-decoration: none;
+            transition: all 0.2s ease;
+            cursor: pointer;
+            border: none;
+        }
+
+        .pay-btn {
+            background: linear-gradient(135deg, var(--secondary), var(--primary));
+            color: #fff;
+        }
+
+        .pay-btn:hover:not(.disabled) {
+            filter: brightness(1.1);
+            transform: scale(1.02);
+        }
+
+        .contact-btn {
+            background: rgba(255, 255, 255, 0.03);
+            border: 1px solid var(--border);
+            color: var(--text-muted);
+            font-size: 0.75rem;
+        }
+
+        .disabled {
+            opacity: 0.3;
+            cursor: not-allowed;
+            pointer-events: none;
+        }
+
+        #status-msg {
+            text-align: center;
+            margin-top: 12px;
+            font-size: 0.7rem;
+            font-weight: 600;
+            min-height: 14px;
+        }
+
+        .text-error { color: var(--error); }
+        .text-success { color: var(--success); }
+
+        @media (max-width: 480px) {
+            .container { max-width: 100%; }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="glow" style="top: 0; left: 0;"></div>
+    <canvas id="nebula-canvas"></canvas>
+
+    <div class="container">
+        <div class="order-card">
+            <header class="header">
+                <h1>HASH BULK ORDER</h1>
+            </header>
+
+            <!-- Step 1: Select Plan -->
+            <div class="form-group">
+                <label>Select Plan</label>
+                <select id="plan-select" onchange="handlePlanChange()">
+                    <option value="" disabled selected>Choose a tier...</option>
+                    <option value="0.30" data-name="500 Tier">500 value (R0.30/u)</option>
+                    <option value="3.60" data-name="1500 Tier">1500 value (R3.60/u)</option>
+                    <option value="6.10" data-name="2500 Tier">2500 value (R6.10/u)</option>
+                    <option value="13.00" data-name="3500 Tier">3500 value (R13.00/u)</option>
+                    <option value="18.00" data-name="10000 Tier">10000 value (R18.00/u)</option>
+                </select>
+            </div>
+
+            <!-- Step 2: Hidden until plan is selected -->
+            <div id="step-2" class="hidden">
+                <div class="form-group">
+                    <label>Amount of Units</label>
+                    <input type="number" id="qty-input" placeholder="Enter amount" min="1" oninput="runCalc()">
+                </div>
+
+                <div class="price-wrapper">
+                    <div class="total-amount">R<span id="total-val">0.00</span></div>
+                </div>
+
+                <div class="actions">
+                    <a href="#" id="checkout-link" class="btn pay-btn disabled">Pay Now</a>
+                    <a href="#" id="whatsapp-link" class="btn contact-btn">Support</a>
+                </div>
+                
+                <div id="status-msg"></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const planEl = document.getElementById('plan-select');
+        const qtyEl = document.getElementById('qty-input');
+        const step2 = document.getElementById('step-2');
+        const totalDisplay = document.getElementById('total-val');
+        const payBtn = document.getElementById('checkout-link');
+        const whatsappBtn = document.getElementById('whatsapp-link');
+        const msgEl = document.getElementById('status-msg');
+
+        const OWNER_PHONE = "27717311486"; 
+
+        function handlePlanChange() {
+            if (planEl.value) {
+                step2.classList.remove('hidden');
+                step2.classList.add('visible');
+                runCalc();
+            }
+        }
+
+        function runCalc() {
+            const rate = parseFloat(planEl.value);
+            const planName = planEl.options[planEl.selectedIndex].getAttribute('data-name');
+            const qty = Math.max(0, parseFloat(qtyEl.value) || 0);
+            const total = qty * rate;
+            const refText = `${planName} | ${qty}u`;
+            
+            totalDisplay.innerText = total.toFixed(2);
+
+            const waMessage = `Order Request:%0APlan: ${planName}%0AUnits: ${qty}%0ATotal: R${total.toFixed(2)}`;
+            whatsappBtn.href = `https://wa.me/${OWNER_PHONE}?text=${waMessage}`;
+
+            if (total >= 15) {
+                payBtn.classList.remove('disabled');
+                msgEl.innerText = "Ready to proceed";
+                msgEl.className = "text-success";
+                payBtn.href = `https://pay.yoco.com/coderxsa?amount=${total.toFixed(2)}&reference=${encodeURIComponent(refText)}`;
+            } else {
+                payBtn.classList.add('disabled');
+                const diff = (15 - total).toFixed(2);
+                msgEl.innerText = qty > 0 ? `Minimum R15 (Add R${diff})` : "Enter units to start";
+                msgEl.className = "text-error";
+                payBtn.href = "#";
+            }
+        }
+
+        // Star animation
+        const canvas = document.getElementById('nebula-canvas');
+        const ctx = canvas.getContext('2d');
+        let stars = [];
+
+        function init() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            stars = Array.from({length: 80}, () => ({
+                x: Math.random() * canvas.width,
+                y: Math.random() * canvas.height,
+                s: Math.random() * 1.2,
+                v: Math.random() * 0.1 + 0.05
+            }));
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            stars.forEach(s => {
+                s.y -= s.v;
+                if(s.y < 0) s.y = canvas.height;
+                ctx.fillStyle = `rgba(192, 132, 252, 0.3)`;
+                ctx.beginPath();
+                ctx.arc(s.x, s.y, s.s, 0, Math.PI*2);
+                ctx.fill();
+            });
+            requestAnimationFrame(draw);
+        }
+
+        window.onresize = init;
+        init();
+        draw();
+    </script>
+</body>
+</html>
